@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mbacalan/paper-mc-tui/utils"
+	"github.com/mbacalan/paper-mc-tui/internal/utils"
 )
 
 const url = "https://api.papermc.io/v2"
