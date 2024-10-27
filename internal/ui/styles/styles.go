@@ -22,6 +22,7 @@ type General struct {
 type DefaultStyles struct {
 	List    List
 	General General
+	Width   int
 }
 
 func New() DefaultStyles {
