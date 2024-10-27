@@ -2,21 +2,20 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/mbacalan/paper-mc-tui/internal/ui/components"
+	"github.com/mbacalan/paper-mc-tui/internal/ui/styles"
 	"github.com/mbacalan/paper-mc-tui/internal/utils"
 )
 
 const url = "https://api.papermc.io/v2"
 
 type model struct {
-	list    list.Model
+	list    components.List
+	styles  styles.DefaultStyles
 	choice  string
 	version string
 }
@@ -37,44 +36,6 @@ func (k actionKeyMap) FullHelp() [][]key.Binding {
 type statusMsg string
 
 type errMsg struct{ err error }
-
-const listHeight = 14
-
-var (
-	titleStyle        = lipgloss.NewStyle().MarginLeft(2)
-	itemStyle         = lipgloss.NewStyle().PaddingLeft(4)
-	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170"))
-	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
-	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
-	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
-)
-
-type item string
-
-func (i item) FilterValue() string { return "" }
-
-type itemDelegate struct{}
-
-func (d itemDelegate) Height() int                             { return 1 }
-func (d itemDelegate) Spacing() int                            { return 0 }
-func (d itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(item)
-	if !ok {
-		return
-	}
-
-	str := fmt.Sprintf("%d. %s", index+1, i)
-
-	fn := itemStyle.Render
-	if index == m.Index() {
-		fn = func(s ...string) string {
-			return selectedItemStyle.Render("> " + strings.Join(s, " "))
-		}
-	}
-
-	fmt.Fprint(w, fn(str))
-}
 
 func getLatestVersion() tea.Msg {
 	versions, err := utils.FetchAPIData(url + "/projects/paper/")
@@ -108,7 +69,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "enter":
-			i, ok := m.list.SelectedItem().(item)
+			i, ok := m.list.SelectedItem()
 			if ok {
 				m.choice = string(i)
 
@@ -135,38 +96,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	if m.version != "" {
-		versionText := titleStyle.Render(fmt.Sprintf("Latest available version is %s\n\n", m.version))
+		versionText := m.styles.List.Title.Render(fmt.Sprintf("Latest available version is %s\n\n", m.version))
 
 		var keys = actionKeyMap{
 			Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 			Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 		}
 
-		return versionText + m.list.Help.View(keys)
+		return versionText + m.list.Help().View(keys)
 	}
 
 	if m.choice == "Quit" {
-		return quitTextStyle.Render("Bye!")
+		return m.styles.General.QuitText.Render("Bye!")
 	}
 
 	return "\n" + m.list.View()
 }
 
 func main() {
-	items := []list.Item{
-		item("Check latest version"),
-		item("Quit"),
+	s := styles.New()
+	items := []components.Item{
+		"Check latest version",
+		"Quit",
 	}
 
-	const defaultWidth = 20
+	l := components.New(items, s)
+	l.SetTitle("PaperMC Management CLI")
 
-	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
-	l.Title = "PaperMC Management CLI"
-	l.SetShowStatusBar(false)
-	l.SetFilteringEnabled(false)
-	l.Styles.HelpStyle = helpStyle
-
-	m := model{list: l}
+	m := model{list: l, styles: s}
 
 	if _, err := tea.NewProgram(m).Run(); err != nil {
 		fmt.Printf("Uh oh, there was an error: %v\n", err)
