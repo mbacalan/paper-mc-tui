@@ -10,7 +10,21 @@ import (
 
 type APIResponse struct {
 	Versions []string `json:"versions"`
-	Builds   []string `json:"builds"`
+	Builds   []Build  `json:"builds"`
+}
+
+type Build struct {
+	Build     int       `json:"build"`
+	Downloads Downloads `json:"downloads"`
+	Channel   string    `json:"channel"`
+}
+
+type Downloads struct {
+	Application Application `json:"application"`
+}
+
+type Application struct {
+	Name string `json:"name"`
 }
 
 // FetchAPIData makes an HTTP GET request to the specified URL and returns the parsed JSON response
@@ -59,31 +73,37 @@ func FetchAPIData(url string) (*APIResponse, error) {
 
 const url = "https://api.papermc.io/v2"
 
-func GetLatestVersionNr() (string, error) {
+func GetLatestStableVersion() (string, error) {
 	versions, err := FetchAPIData(url + "/projects/paper/")
 
 	if err != nil {
-		return "", err
+		return err.Error(), err
 	}
 
-	latestVersion := versions.Versions[len(versions.Versions)-1]
-	return latestVersion, nil
+	for i := len(versions.Versions) - 1; i >= 0; i-- {
+		version := versions.Versions[i]
+		builds, err := FetchAPIData(url + "/projects/paper/versions/" + version + "/builds/")
+
+		if err != nil {
+			return err.Error(), err
+		}
+
+		for j := len(builds.Builds) - 1; j >= 0; j-- {
+			if builds.Builds[j].Channel == "default" {
+				return version, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("No version with default channel builds found!")
 }
 
-func GetLatestBuild() (string, error) {
-	versions, err := FetchAPIData(url + "/projects/paper/")
-	// https://api.papermc.io/v2/projects/paper/versions/1.21.1/builds/
+func GetLatestBuild(version string) (string, error) {
+	builds, err := FetchAPIData(url + "/projects/paper/versions/" + version + "/builds/")
+	latestBuild := builds.Builds[len(builds.Builds)-1].Downloads.Application.Name
 
 	if err != nil {
-		return "", err
-	}
-
-	latestVersion := versions.Versions[len(versions.Versions)-1]
-	builds, err := FetchAPIData(url + "/projects/paper/versions/" + latestVersion + "/builds/")
-	latestBuild := builds.Builds[len(builds.Builds)-1]
-
-	if err != nil {
-		return "", err
+		return err.Error(), err
 	}
 
 	return latestBuild, nil

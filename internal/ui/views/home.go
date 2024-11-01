@@ -16,11 +16,13 @@ type HomeView struct {
 const (
 	HomeViewID ViewID = iota
 	VersionViewID
+	BuildViewID
 )
 
 func NewHomeView(s styles.DefaultStyles) *HomeView {
 	items := []components.Item{
 		"Check latest version",
+		"Check latest build",
 		"Quit",
 	}
 
@@ -58,6 +60,10 @@ func (v *HomeView) Update(msg tea.Msg) (View, tea.Cmd) {
 				case "Check latest version":
 					return v, func() tea.Msg {
 						return SwitchViewMsg{ViewID: VersionViewID}
+					}
+				case "Check latest build":
+					return v, func() tea.Msg {
+						return SwitchViewMsg{ViewID: BuildViewID}
 					}
 				case "Quit":
 					return v, tea.Quit

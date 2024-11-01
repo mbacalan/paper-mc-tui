@@ -10,41 +10,28 @@ import (
 	"github.com/mbacalan/paper-mc-tui/internal/utils"
 )
 
-type VersionView struct {
+type BuildView struct {
 	list    components.List
 	styles  styles.DefaultStyles
 	version string
+	build   string
 }
 
-type actionKeyMap struct {
-	Esc  key.Binding
-	Quit key.Binding
-}
-
-func (k actionKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Esc, k.Quit}
-}
-
-func (k actionKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{{k.Esc, k.Quit}}
-}
-
-const url = "https://api.papermc.io/v2"
-
-func NewVersionView(s styles.DefaultStyles) *VersionView {
-	return &VersionView{
+func NewBuildView(s styles.DefaultStyles) *BuildView {
+	return &BuildView{
 		list:   components.New([]components.Item{}, s),
 		styles: s,
 	}
 }
 
-func (v *VersionView) Init() tea.Cmd {
-	version, _ := utils.GetLatestStableVersion()
-	v.version = string(version)
+func (v *BuildView) Init() tea.Cmd {
+  version, _ := utils.GetLatestStableVersion()
+	build, _ := utils.GetLatestBuild(version)
+	v.build = build
 	return nil
 }
 
-func (v *VersionView) Update(msg tea.Msg) (View, tea.Cmd) {
+func (v *BuildView) Update(msg tea.Msg) (View, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -64,17 +51,22 @@ func (v *VersionView) Update(msg tea.Msg) (View, tea.Cmd) {
 	return v, cmd
 }
 
-func (v *VersionView) View() string {
-	if v.version != "" {
-		versionText := v.styles.List.Title.Render(fmt.Sprintf("Latest available version is %s\n\n", v.version))
+func (v *BuildView) View() string {
+	// return fmt.Sprintf(
+	// 	"\nDebug: %s",
+	// 	v.build,
+	// )
+
+	if v.build != "" {
+		buildText := v.styles.List.Title.Render(fmt.Sprintf("Latest available build is %s\n\n", v.build))
 
 		var keys = actionKeyMap{
 			Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 			Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 		}
 
-		return versionText + v.list.Help().View(keys)
+		return buildText + v.list.Help().View(keys)
 	}
 
-	return "Unable to get latest version!\n"
+	return "Unable to get latest build!\n"
 }
