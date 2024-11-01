@@ -10,6 +10,7 @@ import (
 
 type APIResponse struct {
 	Versions []string `json:"versions"`
+	Builds   []string `json:"builds"`
 }
 
 // FetchAPIData makes an HTTP GET request to the specified URL and returns the parsed JSON response
@@ -54,4 +55,36 @@ func FetchAPIData(url string) (*APIResponse, error) {
 	}
 
 	return &apiResponse, nil
+}
+
+const url = "https://api.papermc.io/v2"
+
+func GetLatestVersionNr() (string, error) {
+	versions, err := FetchAPIData(url + "/projects/paper/")
+
+	if err != nil {
+		return "", err
+	}
+
+	latestVersion := versions.Versions[len(versions.Versions)-1]
+	return latestVersion, nil
+}
+
+func GetLatestBuild() (string, error) {
+	versions, err := FetchAPIData(url + "/projects/paper/")
+	// https://api.papermc.io/v2/projects/paper/versions/1.21.1/builds/
+
+	if err != nil {
+		return "", err
+	}
+
+	latestVersion := versions.Versions[len(versions.Versions)-1]
+	builds, err := FetchAPIData(url + "/projects/paper/versions/" + latestVersion + "/builds/")
+	latestBuild := builds.Builds[len(builds.Builds)-1]
+
+	if err != nil {
+		return "", err
+	}
+
+	return latestBuild, nil
 }

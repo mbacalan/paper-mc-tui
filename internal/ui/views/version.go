@@ -16,14 +16,6 @@ type VersionView struct {
 	version string
 }
 
-type statusMsg string
-
-type errMsg struct{ err error }
-
-// For messages that contain errors it's often handy to also implement the
-// error interface on the message.
-func (e errMsg) Error() string { return e.err.Error() }
-
 type actionKeyMap struct {
 	Esc  key.Binding
 	Quit key.Binding
@@ -39,17 +31,6 @@ func (k actionKeyMap) FullHelp() [][]key.Binding {
 
 const url = "https://api.papermc.io/v2"
 
-func (v *VersionView) getLatestVersion() tea.Msg {
-	versions, err := utils.FetchAPIData(url + "/projects/paper/")
-
-	if err != nil {
-		return errMsg{err}
-	}
-
-	latestVersion := versions.Versions[len(versions.Versions)-1]
-	return statusMsg(latestVersion)
-}
-
 func NewVersionView(s styles.DefaultStyles) *VersionView {
 	return &VersionView{
 		list:   components.New([]components.Item{}, s),
@@ -58,7 +39,7 @@ func NewVersionView(s styles.DefaultStyles) *VersionView {
 }
 
 func (v *VersionView) Init() tea.Cmd {
-	version := v.getLatestVersion().(statusMsg)
+	version, _ := utils.GetLatestVersionNr()
 	v.version = string(version)
 	return nil
 }
