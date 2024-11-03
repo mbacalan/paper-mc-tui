@@ -69,6 +69,10 @@ func (m *Manager) switchView(id ViewID) (tea.Model, tea.Cmd) {
 		view = NewVersionView(m.styles)
 	case BuildViewID:
 		view = NewBuildView(m.styles)
+	case BuildURLViewID:
+		view = NewBuildURLView(m.styles)
+	default:
+		view = NewHomeView(m.styles)
 	}
 
 	m.currentView = view

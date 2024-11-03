@@ -17,16 +17,17 @@ type VersionView struct {
 }
 
 type actionKeyMap struct {
-	Esc  key.Binding
-	Quit key.Binding
+	Esc   key.Binding
+	Quit  key.Binding
+	Retry key.Binding
 }
 
 func (k actionKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Esc, k.Quit}
+	return []key.Binding{k.Esc, k.Quit, k.Retry}
 }
 
 func (k actionKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{{k.Esc, k.Quit}}
+	return [][]key.Binding{{k.Esc, k.Quit, k.Retry}}
 }
 
 const url = "https://api.papermc.io/v2"
