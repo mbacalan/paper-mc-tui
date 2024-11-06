@@ -10,7 +10,7 @@ import (
 	"github.com/mbacalan/paper-mc-tui/internal/utils"
 )
 
-type BuildURLView struct {
+type DownloadView struct {
 	list       components.List
 	styles     styles.DefaultStyles
 	success    bool
@@ -18,14 +18,14 @@ type BuildURLView struct {
 	retryCount int
 }
 
-func NewBuildURLView(s styles.DefaultStyles) *BuildURLView {
-	return &BuildURLView{
+func NewDownloadView(s styles.DefaultStyles) *DownloadView {
+	return &DownloadView{
 		list:   components.New([]components.Item{}, s),
 		styles: s,
 	}
 }
 
-func (v *BuildURLView) Download() error {
+func (v *DownloadView) Download() error {
 	version, _ := utils.GetLatestStableVersion()
 	err := utils.DownloadLatestBuild(version)
 
@@ -36,7 +36,7 @@ func (v *BuildURLView) Download() error {
 	return nil
 }
 
-func (v *BuildURLView) Init() tea.Cmd {
+func (v *DownloadView) Init() tea.Cmd {
 	v.error = nil
 	v.success = false
 
@@ -51,7 +51,7 @@ func (v *BuildURLView) Init() tea.Cmd {
 	return nil
 }
 
-func (v *BuildURLView) Update(msg tea.Msg) (View, tea.Cmd) {
+func (v *DownloadView) Update(msg tea.Msg) (View, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -75,7 +75,7 @@ func (v *BuildURLView) Update(msg tea.Msg) (View, tea.Cmd) {
 	return v, cmd
 }
 
-func (v *BuildURLView) View() string {
+func (v *DownloadView) View() string {
 	// return fmt.Sprintf(
 	// 	"\nDebug: %s",
 	// 	v.build,

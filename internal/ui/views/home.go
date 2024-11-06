@@ -17,7 +17,7 @@ const (
 	HomeViewID ViewID = iota
 	VersionViewID
 	BuildViewID
-	BuildURLViewID
+	DownloadBuildID
 )
 
 func NewHomeView(s styles.DefaultStyles) *HomeView {
@@ -69,7 +69,7 @@ func (v *HomeView) Update(msg tea.Msg) (View, tea.Cmd) {
 					}
 				case "Get latest build URL":
 					return v, func() tea.Msg {
-						return SwitchViewMsg{ViewID: BuildURLViewID}
+						return SwitchViewMsg{ViewID: DownloadBuildID}
 					}
 				case "Quit":
 					return v, tea.Quit
