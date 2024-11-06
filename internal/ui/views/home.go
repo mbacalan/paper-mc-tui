@@ -13,6 +13,15 @@ type HomeView struct {
 	choice string
 }
 
+type MenuAction string
+
+const (
+	CheckVersion  MenuAction = "Check latest version"
+	CheckBuild    MenuAction = "Check latest build"
+	DownloadBuild MenuAction = "Download latest build"
+	Quit          MenuAction = "Quit"
+)
+
 const (
 	HomeViewID ViewID = iota
 	VersionViewID
@@ -20,12 +29,19 @@ const (
 	DownloadBuildID
 )
 
+var menuActionViewMap = map[MenuAction]ViewID{
+	CheckVersion:  VersionViewID,
+	CheckBuild:    BuildViewID,
+	DownloadBuild: DownloadBuildID,
+	Quit:          HomeViewID,
+}
+
 func NewHomeView(s styles.DefaultStyles) *HomeView {
 	items := []components.Item{
-		"Check latest version",
-		"Check latest build",
-		"Get latest build URL",
-		"Quit",
+		components.NewItem(string(CheckVersion)),
+		components.NewItem(string(CheckBuild)),
+		components.NewItem(string(DownloadBuild)),
+		components.NewItem(string(Quit)),
 	}
 
 	return &HomeView{
@@ -59,19 +75,19 @@ func (v *HomeView) Update(msg tea.Msg) (View, tea.Cmd) {
 				v.choice = string(i)
 
 				switch v.choice {
-				case "Check latest version":
+				case string(CheckVersion):
 					return v, func() tea.Msg {
 						return SwitchViewMsg{ViewID: VersionViewID}
 					}
-				case "Check latest build":
+				case string(CheckBuild):
 					return v, func() tea.Msg {
 						return SwitchViewMsg{ViewID: BuildViewID}
 					}
-				case "Get latest build URL":
+				case string(DownloadBuild):
 					return v, func() tea.Msg {
 						return SwitchViewMsg{ViewID: DownloadBuildID}
 					}
-				case "Quit":
+				case string(Quit):
 					return v, tea.Quit
 				}
 			}
