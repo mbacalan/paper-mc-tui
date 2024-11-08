@@ -133,40 +133,48 @@ func DownloadLatestBuild(version string) error {
 		return err
 	}
 
-	return downloadFile(latestBuildURL)
+	// Force download since we handle backups at a higher level
+	return downloadFile(latestBuildURL, true)
 }
 
-func downloadFile(url string) error {
-	// dynamic download path later
+func downloadFile(url string, force bool) error {
 	file := "./paper.jar"
-	_, err := os.Stat(file)
 
-	if errors.Is(err, os.ErrNotExist) {
-		// File doesn't exist, safe to create
-		out, err := os.Create(file)
-		if err != nil {
-			return err
+	if !force {
+		// Only check existence if we're not forcing
+		_, err := os.Stat(file)
+		if err == nil {
+			return fmt.Errorf("File already exists! Refusing to overwrite.")
 		}
-		defer out.Close()
-
-		// Get the data
-		resp, err := http.Get(url)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-
-		// Check server response
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Error downloading: %s", resp.Status)
-		}
-
-		// Writer the body to file
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 	}
 
-	return fmt.Errorf("File already exists! Refusing to overwrite.")
+	// Create/truncate the file
+	out, err := os.Create(file)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Check server response
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Error downloading: %s", resp.Status)
+	}
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
