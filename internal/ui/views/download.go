@@ -214,15 +214,15 @@ func (v *DownloadView) Update(msg tea.Msg) (View, tea.Cmd) {
 
 func (v *DownloadView) View() string {
 	style := lipgloss.NewStyle().Margin(1, 2)
-	var keys = components.KeyMap{
-		Back: key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
-		Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
-	}
-	help := components.NewHelp(keys)
+	help := components.NewHelp()
 
 	switch v.state {
 	case stateBackupPrompt:
 		promptText := style.Render("A paper.jar file already exists. Would you like to back it up? (y/n)\n\n")
+			help := components.NewHelp(
+				key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "yes")),
+				key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "no")),
+			)
 		return promptText + help.View()
 
 	case stateBackupInput:
@@ -244,13 +244,9 @@ func (v *DownloadView) View() string {
 			}
 
 			errorText := style.Render(text)
-
-			var keys = components.KeyMap{
-				Back:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
-				Quit:  key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
-				Retry: key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "retry")),
-			}
-			help := components.NewHelp(keys)
+			help := components.NewHelp(
+				key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "retry")),
+			)
 
 			return errorText + help.View()
 		}

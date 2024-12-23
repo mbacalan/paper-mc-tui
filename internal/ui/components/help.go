@@ -7,61 +7,69 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// keyMap defines a set of keybindings. To work for help it must satisfy
-// key.Map. It could also very easily be a map[string]key.Binding.
 type KeyMap struct {
 	Up      key.Binding
 	Down    key.Binding
 	Retry   key.Binding
 	Accept  key.Binding
 	Decline key.Binding
+	Help    key.Binding
 	Back    key.Binding
 	Quit    key.Binding
+	Custom  []key.Binding
 }
 
-// ShortHelp returns keybindings to be shown in the mini help view. It's part
-// of the key.Map interface.
 func (k KeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Retry, k.Back, k.Quit}
+	defaultKeys := []key.Binding{k.Accept, k.Decline, k.Retry, k.Back, k.Quit}
+	return append(defaultKeys, k.Custom...)
 }
 
-// FullHelp returns keybindings for the expanded help view. It's part of the
-// key.Map interface.
 func (k KeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Up, k.Down, k.Retry, k.Accept, k.Decline}, // first column
-		{k.Back, k.Quit}, // second column
+	defaultKeys := [][]key.Binding{
+		{k.Up, k.Down, k.Retry, k.Accept, k.Decline},
+		{k.Back, k.Quit},
 	}
+	if len(k.Custom) > 0 {
+		defaultKeys = append(defaultKeys, k.Custom)
+	}
+	return defaultKeys
+}
+
+var DefaultKeyMap = KeyMap{
+	Help: key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "toggle help")),
+	Back: key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
+	Quit: key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 }
 
 type Help struct {
-	help   help.Model
-	keyMap KeyMap
+	help help.Model
+	keys KeyMap
 }
 
-func NewHelp(keyMap KeyMap) Help {
+func NewHelp(additionalKeys ...key.Binding) Help {
+	keys := DefaultKeyMap
+	keys.Custom = additionalKeys
 	return Help{
-		help:   help.New(),
-		keyMap: keyMap,
+		help: help.New(),
+		keys: keys,
 	}
 }
 
 func (h Help) View() string {
-	return lipgloss.NewStyle().Padding(1, 0, 0, 2).Render(h.help.View(h.keyMap))
+	return lipgloss.NewStyle().Padding(1, 0, 0, 2).Render(h.help.View(h.keys))
 }
 
 func (h Help) Update(msg tea.Msg) (Help, tea.Cmd) {
-	var cmd tea.Cmd
-
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		h.SetWidth(msg.Width)
+		h.help.Width = msg.Width
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, h.keys.Help):
+			h.help.ShowAll = !h.help.ShowAll
+		case key.Matches(msg, h.keys.Quit):
+			return h, tea.Quit
+		}
 	}
-
-	h.help, cmd = h.help.Update(msg)
-	return h, cmd
-}
-
-func (h *Help) SetWidth(width int) {
-	h.help.Width = width
+	return h, nil
 }

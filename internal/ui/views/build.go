@@ -3,7 +3,6 @@ package views
 import (
 	"fmt"
 
-	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mbacalan/paper-mc-tui/internal/ui/components"
@@ -47,11 +46,7 @@ func (v *BuildView) Update(msg tea.Msg) (View, tea.Cmd) {
 
 func (v *BuildView) View() string {
 	style := lipgloss.NewStyle().Margin(1, 2)
-	var keys = components.KeyMap{
-		Back: key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
-		Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
-	}
-	help := components.NewHelp(keys)
+	help := components.NewHelp()
 
 	if v.build != "" {
 		buildText := style.Render(fmt.Sprintf("Latest available build is %s\n\n", v.build))
