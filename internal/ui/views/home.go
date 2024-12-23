@@ -3,56 +3,49 @@ package views
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mbacalan/paper-mc-tui/internal/ui/components"
-	"github.com/mbacalan/paper-mc-tui/internal/ui/styles"
 )
 
 // HomeView represents the main view of the application
 type HomeView struct {
 	list   components.List
-	styles styles.DefaultStyles
 	choice string
 }
 
 type MenuAction string
 
 const (
-	CheckVersion  MenuAction = "Check latest version"
-	CheckBuild    MenuAction = "Check latest build"
-	DownloadBuild MenuAction = "Download latest build"
-	Quit          MenuAction = "Quit"
+	CheckLatestVersion  MenuAction = "Check latest version"
+	CheckLatestBuild    MenuAction = "Check latest build"
+	CheckInstalledBuild MenuAction = "Check installed build"
+	DownloadLatestBuild MenuAction = "Download latest build"
+	Quit                MenuAction = "Quit"
 )
 
 const (
 	HomeViewID ViewID = iota
 	VersionViewID
 	BuildViewID
+	CurrentBuildViewID
 	DownloadBuildID
 )
 
-var menuActionViewMap = map[MenuAction]ViewID{
-	CheckVersion:  VersionViewID,
-	CheckBuild:    BuildViewID,
-	DownloadBuild: DownloadBuildID,
-	Quit:          HomeViewID,
-}
-
-func NewHomeView(s styles.DefaultStyles) *HomeView {
+func NewHomeView() *HomeView {
 	items := []components.Item{
-		components.NewItem(string(CheckVersion)),
-		components.NewItem(string(CheckBuild)),
-		components.NewItem(string(DownloadBuild)),
-		components.NewItem(string(Quit)),
+		components.Item(CheckLatestVersion),
+		components.Item(CheckLatestBuild),
+		components.Item(CheckInstalledBuild),
+		components.Item(DownloadLatestBuild),
+		components.Item(Quit),
 	}
 
+	list := components.NewList(items, "PaperMC Management CLI")
+
 	return &HomeView{
-		list:   components.New(items, s),
-		styles: s,
+		list: list,
 	}
 }
 
 func (v *HomeView) Init() tea.Cmd {
-	v.list.SetTitle("PaperMC Management CLI")
-
 	return nil
 }
 
@@ -62,7 +55,6 @@ func (v *HomeView) Update(msg tea.Msg) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		v.list.SetWidth(msg.Width)
-		return v, nil
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -75,15 +67,19 @@ func (v *HomeView) Update(msg tea.Msg) (View, tea.Cmd) {
 				v.choice = string(i)
 
 				switch v.choice {
-				case string(CheckVersion):
+				case string(CheckLatestVersion):
 					return v, func() tea.Msg {
 						return SwitchViewMsg{ViewID: VersionViewID}
 					}
-				case string(CheckBuild):
+				case string(CheckLatestBuild):
 					return v, func() tea.Msg {
 						return SwitchViewMsg{ViewID: BuildViewID}
 					}
-				case string(DownloadBuild):
+				case string(CheckInstalledBuild):
+					return v, func() tea.Msg {
+						return SwitchViewMsg{ViewID: CurrentBuildViewID}
+					}
+				case string(DownloadLatestBuild):
 					return v, func() tea.Msg {
 						return SwitchViewMsg{ViewID: DownloadBuildID}
 					}

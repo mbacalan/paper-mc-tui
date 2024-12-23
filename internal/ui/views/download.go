@@ -8,8 +8,8 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/mbacalan/paper-mc-tui/internal/ui/components"
-	"github.com/mbacalan/paper-mc-tui/internal/ui/styles"
 	"github.com/mbacalan/paper-mc-tui/internal/utils"
 )
 
@@ -22,8 +22,6 @@ const (
 )
 
 type DownloadView struct {
-	list         components.List
-	styles       styles.DefaultStyles
 	success      bool
 	error        error
 	retryCount   int
@@ -35,7 +33,7 @@ type DownloadView struct {
 	build        string
 }
 
-func NewDownloadView(s styles.DefaultStyles) *DownloadView {
+func NewDownloadView() *DownloadView {
 	ti := textinput.New()
 	ti.Placeholder = "paper.backup.jar"
 	ti.Focus()
@@ -49,8 +47,6 @@ func NewDownloadView(s styles.DefaultStyles) *DownloadView {
 	}
 
 	return &DownloadView{
-		list:        components.New([]components.Item{}, s),
-		styles:      s,
 		backupInput: ti,
 		logger:      logger,
 	}
@@ -189,11 +185,13 @@ func (v *DownloadView) Update(msg tea.Msg) (View, tea.Cmd) {
 				v.state = stateBackupInput
 				v.backupInput.Focus()
 				return v, nil
-			case "n":
+			case "n", "esc":
 				v.logger.Log("Operation cancelled by user")
 				return v, func() tea.Msg {
 					return SwitchViewMsg{ViewID: HomeViewID}
 				}
+			case "q", "ctrl+c":
+				return v, tea.Quit
 			}
 
 		default:
@@ -211,35 +209,45 @@ func (v *DownloadView) Update(msg tea.Msg) (View, tea.Cmd) {
 		}
 	}
 
-	v.list, cmd = v.list.Update(msg)
 	return v, cmd
 }
 
 func (v *DownloadView) View() string {
+	style := lipgloss.NewStyle().Margin(1, 2)
+	var keys = actionKeyMap{
+		Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
+		Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
+	}
+	help := components.NewHelp(keys)
+
 	switch v.state {
 	case stateBackupPrompt:
-		promptText := v.styles.List.Title.Render("A paper.jar file already exists. Would you like to back it up? (y/n)\n\n")
+		promptText := style.Render("A paper.jar file already exists. Would you like to back it up? (y/n)\n\n")
 
 		var keys = actionKeyMap{
+			Esc:  key.NewBinding(key.WithKeys("n", "esc"), key.WithHelp("n, esc", "back")),
 			Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 		}
 
-		return promptText + v.list.Help().View(keys)
+		help := components.NewHelp(keys)
+
+		return promptText + help.View()
 
 	case stateBackupInput:
-		inputText := v.styles.List.Title.Render("Enter backup filename (default: paper.backup.jar):\n\n")
+		inputText := style.Render("Enter backup filename (default: paper.backup.jar):\n\n")
 		return inputText + v.backupInput.View() + "\n\n(press Enter to confirm, Esc to go back)"
 
 	default:
 		if v.success {
-			buildText := v.styles.List.Title.Render(fmt.Sprint("Downloaded latest build!\n\n"))
+			buildText := style.Render(fmt.Sprint("Downloaded latest build!\n\n"))
 
 			var keys = actionKeyMap{
 				Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 				Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 			}
+			help := components.NewHelp(keys)
 
-			return buildText + v.list.Help().View(keys)
+			return buildText + help.View()
 		}
 
 		if v.error != nil {
@@ -250,17 +258,18 @@ func (v *DownloadView) View() string {
 				text = fmt.Sprint(text + "Retrying...\n\n" + retries)
 			}
 
-			errorText := v.styles.List.Title.Render(text)
+			errorText := style.Render(text)
 
 			var keys = actionKeyMap{
 				Esc:   key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 				Quit:  key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 				Retry: key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "retry")),
 			}
+			help := components.NewHelp(keys)
 
-			return errorText + v.list.Help().View(keys)
+			return errorText + help.View()
 		}
 
-		return "Unable to download latest build!\n"
+		return "Unable to download latest build!\n" + help.View()
 	}
 }

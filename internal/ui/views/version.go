@@ -5,14 +5,12 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/mbacalan/paper-mc-tui/internal/ui/components"
-	"github.com/mbacalan/paper-mc-tui/internal/ui/styles"
 	"github.com/mbacalan/paper-mc-tui/internal/utils"
 )
 
 type VersionView struct {
-	list    components.List
-	styles  styles.DefaultStyles
 	version string
 }
 
@@ -32,11 +30,8 @@ func (k actionKeyMap) FullHelp() [][]key.Binding {
 
 const url = "https://api.papermc.io/v2"
 
-func NewVersionView(s styles.DefaultStyles) *VersionView {
-	return &VersionView{
-		list:   components.New([]components.Item{}, s),
-		styles: s,
-	}
+func NewVersionView() *VersionView {
+	return &VersionView{}
 }
 
 func (v *VersionView) Init() tea.Cmd {
@@ -61,21 +56,23 @@ func (v *VersionView) Update(msg tea.Msg) (View, tea.Cmd) {
 		}
 	}
 
-	v.list, cmd = v.list.Update(msg)
 	return v, cmd
 }
 
 func (v *VersionView) View() string {
+	style := lipgloss.NewStyle().Margin(1, 2)
+
+	var keys = actionKeyMap{
+		Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
+		Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
+	}
+	help := components.NewHelp(keys)
+
 	if v.version != "" {
-		versionText := v.styles.List.Title.Render(fmt.Sprintf("Latest available version is %s\n\n", v.version))
+		versionText := style.Render(fmt.Sprintf("Latest available version is %s\n\n", v.version))
 
-		var keys = actionKeyMap{
-			Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
-			Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
-		}
-
-		return versionText + v.list.Help().View(keys)
+		return versionText + help.View()
 	}
 
-	return "Unable to get latest version!\n"
+	return "Unable to get latest version!\n" + help.View()
 }

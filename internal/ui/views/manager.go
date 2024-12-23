@@ -2,7 +2,6 @@ package views
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mbacalan/paper-mc-tui/internal/ui/styles"
 )
 
 // View is the interface that all views must implement
@@ -18,18 +17,15 @@ type ViewID int
 // Manager handles view switching and rendering
 type Manager struct {
 	currentView View
-	styles      styles.DefaultStyles
 }
 
-func NewManager(s styles.DefaultStyles) *Manager {
-	return &Manager{
-		styles: s,
-	}
+func NewManager() *Manager {
+	return &Manager{}
 }
 
 func (m *Manager) Init() tea.Cmd {
 	// Start with home view
-	homeView := NewHomeView(m.styles)
+	homeView := NewHomeView()
 	m.currentView = homeView
 	return m.currentView.Init()
 }
@@ -38,10 +34,6 @@ func (m *Manager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.styles.Width = msg.Width
-		return m, nil
-
 	case SwitchViewMsg:
 		return m.switchView(msg.ViewID)
 	}
@@ -64,15 +56,17 @@ func (m *Manager) switchView(id ViewID) (tea.Model, tea.Cmd) {
 
 	switch id {
 	case HomeViewID:
-		view = NewHomeView(m.styles)
+		view = NewHomeView()
 	case VersionViewID:
-		view = NewVersionView(m.styles)
+		view = NewVersionView()
 	case BuildViewID:
-		view = NewBuildView(m.styles)
+		view = NewBuildView()
+	case CurrentBuildViewID:
+		view = NewCurrentBuildView()
 	case DownloadBuildID:
-		view = NewDownloadView(m.styles)
+		view = NewDownloadView()
 	default:
-		view = NewHomeView(m.styles)
+		view = NewHomeView()
 	}
 
 	m.currentView = view

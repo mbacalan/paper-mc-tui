@@ -10,23 +10,30 @@ import (
 	"github.com/mbacalan/paper-mc-tui/internal/utils"
 )
 
-type BuildView struct {
-	version string
-	build   string
+type CurrentBuildView struct {
+	logger *utils.Logger
+	build  string
 }
 
-func NewBuildView() *BuildView {
-	return &BuildView{}
+func NewCurrentBuildView() *CurrentBuildView {
+	logger, err := utils.NewLogger("paper.log", "version.txt")
+
+	if err != nil {
+		fmt.Printf("Error creating logger: %v\n", err)
+	}
+
+	return &CurrentBuildView{
+		logger: logger,
+	}
 }
 
-func (v *BuildView) Init() tea.Cmd {
-	version, _ := utils.GetLatestStableVersion()
-	build, _ := utils.GetLatestBuild(version)
+func (v *CurrentBuildView) Init() tea.Cmd {
+	build, _ := v.logger.GetLastDownloadedVersion()
 	v.build = build
 	return nil
 }
 
-func (v *BuildView) Update(msg tea.Msg) (View, tea.Cmd) {
+func (v *CurrentBuildView) Update(msg tea.Msg) (View, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -45,7 +52,7 @@ func (v *BuildView) Update(msg tea.Msg) (View, tea.Cmd) {
 	return v, cmd
 }
 
-func (v *BuildView) View() string {
+func (v *CurrentBuildView) View() string {
 	style := lipgloss.NewStyle().Margin(1, 2)
 	var keys = actionKeyMap{
 		Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
@@ -54,7 +61,8 @@ func (v *BuildView) View() string {
 	help := components.NewHelp(keys)
 
 	if v.build != "" {
-		buildText := style.Render(fmt.Sprintf("Latest available build is %s\n\n", v.build))
+		buildText := style.Render(fmt.Sprintf("Current build is %s", v.build))
+		noteText := style.Render("Note: this is according to logs/version.txt!\nIt might be incorrect if you've updated manually.\n\n")
 
 		var keys = actionKeyMap{
 			Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
@@ -62,8 +70,8 @@ func (v *BuildView) View() string {
 		}
 		help := components.NewHelp(keys)
 
-		return "\n" + buildText + help.View()
+		return lipgloss.JoinVertical(lipgloss.Left, buildText, noteText) + help.View()
 	}
 
-	return "\n" + "Unable to get latest build!\n" + help.View()
+	return "Unable to get current build!\n" + help.View()
 }
