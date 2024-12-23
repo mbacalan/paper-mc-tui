@@ -47,21 +47,14 @@ func (v *BuildView) Update(msg tea.Msg) (View, tea.Cmd) {
 
 func (v *BuildView) View() string {
 	style := lipgloss.NewStyle().Margin(1, 2)
-	var keys = actionKeyMap{
-		Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
+	var keys = components.KeyMap{
+		Back: key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 		Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 	}
 	help := components.NewHelp(keys)
 
 	if v.build != "" {
 		buildText := style.Render(fmt.Sprintf("Latest available build is %s\n\n", v.build))
-
-		var keys = actionKeyMap{
-			Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
-			Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
-		}
-		help := components.NewHelp(keys)
-
 		return "\n" + buildText + help.View()
 	}
 

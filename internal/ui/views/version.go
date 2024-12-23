@@ -14,20 +14,6 @@ type VersionView struct {
 	version string
 }
 
-type actionKeyMap struct {
-	Esc   key.Binding
-	Quit  key.Binding
-	Retry key.Binding
-}
-
-func (k actionKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Esc, k.Quit, k.Retry}
-}
-
-func (k actionKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{{k.Esc, k.Quit, k.Retry}}
-}
-
 const url = "https://api.papermc.io/v2"
 
 func NewVersionView() *VersionView {
@@ -62,8 +48,8 @@ func (v *VersionView) Update(msg tea.Msg) (View, tea.Cmd) {
 func (v *VersionView) View() string {
 	style := lipgloss.NewStyle().Margin(1, 2)
 
-	var keys = actionKeyMap{
-		Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
+	var keys = components.KeyMap{
+		Back: key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 		Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 	}
 	help := components.NewHelp(keys)

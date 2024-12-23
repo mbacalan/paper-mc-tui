@@ -54,8 +54,8 @@ func (v *CurrentBuildView) Update(msg tea.Msg) (View, tea.Cmd) {
 
 func (v *CurrentBuildView) View() string {
 	style := lipgloss.NewStyle().Margin(1, 2)
-	var keys = actionKeyMap{
-		Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
+	var keys = components.KeyMap{
+		Back: key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 		Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 	}
 	help := components.NewHelp(keys)
@@ -63,12 +63,6 @@ func (v *CurrentBuildView) View() string {
 	if v.build != "" {
 		buildText := style.Render(fmt.Sprintf("Current build is %s", v.build))
 		noteText := style.Render("Note: this is according to logs/version.txt!\nIt might be incorrect if you've updated manually.\n\n")
-
-		var keys = actionKeyMap{
-			Esc:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
-			Quit: key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
-		}
-		help := components.NewHelp(keys)
 
 		return lipgloss.JoinVertical(lipgloss.Left, buildText, noteText) + help.View()
 	}
