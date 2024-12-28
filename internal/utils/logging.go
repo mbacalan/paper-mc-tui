@@ -12,15 +12,15 @@ type Logger struct {
 	versionFile string
 }
 
-func NewLogger(logFile, versionFile string) (*Logger, error) {
+func NewLogger() (*Logger, error) {
 	// Create logs directory if it doesn't exist
 	if err := os.MkdirAll("logs", 0755); err != nil {
 		return nil, fmt.Errorf("failed to create logs directory: %w", err)
 	}
 
 	return &Logger{
-		logFile:     filepath.Join("logs", logFile),
-		versionFile: filepath.Join("logs", versionFile),
+		logFile:     filepath.Join("logs", "paper-mc.log"),
+		versionFile: filepath.Join("logs", "paper-ver.txt"),
 	}, nil
 }
 

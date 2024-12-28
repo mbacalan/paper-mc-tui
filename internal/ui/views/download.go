@@ -40,7 +40,7 @@ func NewDownloadView() *DownloadView {
 	ti.CharLimit = 150
 	ti.Width = 30
 
-	logger, err := utils.NewLogger("paper.log", "version.txt")
+	logger, err := utils.NewLogger()
 	if err != nil {
 		// Handle logger creation error
 		fmt.Printf("Error creating logger: %v\n", err)

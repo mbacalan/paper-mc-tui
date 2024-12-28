@@ -15,7 +15,7 @@ type CurrentBuildView struct {
 }
 
 func NewCurrentBuildView() *CurrentBuildView {
-	logger, err := utils.NewLogger("paper.log", "version.txt")
+	logger, err := utils.NewLogger()
 
 	if err != nil {
 		fmt.Printf("Error creating logger: %v\n", err)
@@ -57,7 +57,7 @@ func (v *CurrentBuildView) View() string {
 
 	if v.build != "" {
 		buildText := style.Render(fmt.Sprintf("Current build is %s", v.build))
-		noteText := style.Render("Note: this is according to logs/version.txt!\nIt might be incorrect if you've updated manually.\n\n")
+		noteText := style.Render("Note: this is according to logs!\nIt might be incorrect if you've updated manually.\n\n")
 
 		return lipgloss.JoinVertical(lipgloss.Left, buildText, noteText) + help.View()
 	}
