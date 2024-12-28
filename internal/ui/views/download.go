@@ -42,7 +42,6 @@ func NewDownloadView() *DownloadView {
 
 	logger, err := utils.NewLogger()
 	if err != nil {
-		// Handle logger creation error
 		fmt.Printf("Error creating logger: %v\n", err)
 	}
 
@@ -57,7 +56,6 @@ func (v *DownloadView) backup(filename string) error {
 		filename = "paper.backup.jar"
 	}
 
-	// Actually move the file
 	if err := os.Rename("paper.jar", filename); err != nil {
 		return fmt.Errorf("failed to backup file: %w", err)
 	}
@@ -77,7 +75,6 @@ func (v *DownloadView) Download() error {
 		return err
 	}
 
-	// Get build information
 	build, err := utils.GetLatestBuild(version)
 	if err != nil {
 		return err
@@ -88,7 +85,6 @@ func (v *DownloadView) Download() error {
 
 	v.logger.Log(fmt.Sprintf("Latest version is %s", build))
 
-	// Check if we already have the latest version
 	lastVersion, err := v.logger.GetLastDownloadedVersion()
 	if err == nil && lastVersion == build {
 		return fmt.Errorf("already have the latest version (%s)", build)
@@ -102,7 +98,6 @@ func (v *DownloadView) Download() error {
 		return err
 	}
 
-	// Save the new version information
 	if err := v.logger.SaveDownloadedVersion(build); err != nil {
 		return fmt.Errorf("failed to save version info: %w", err)
 	}

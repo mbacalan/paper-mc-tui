@@ -5,7 +5,6 @@ import (
 	"github.com/mbacalan/paper-mc-tui/internal/ui/components"
 )
 
-// HomeView represents the main view of the application
 type HomeView struct {
 	list   components.List
 	choice string

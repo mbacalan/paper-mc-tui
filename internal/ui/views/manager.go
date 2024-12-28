@@ -24,7 +24,6 @@ func NewManager() *Manager {
 }
 
 func (m *Manager) Init() tea.Cmd {
-	// Start with home view
 	homeView := NewHomeView()
 	m.currentView = homeView
 	return m.currentView.Init()
