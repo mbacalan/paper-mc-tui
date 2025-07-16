@@ -1,6 +1,6 @@
 module github.com/mbacalan/paper-mc-tui
 
-go 1.23.2
+go 1.24.5
 
 require (
 	github.com/charmbracelet/bubbles v0.20.0
