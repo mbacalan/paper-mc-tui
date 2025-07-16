@@ -61,8 +61,6 @@ func (h Help) View() string {
 
 func (h Help) Update(msg tea.Msg) (Help, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		h.help.Width = msg.Width
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, h.keys.Help):

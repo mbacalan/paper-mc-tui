@@ -11,10 +11,12 @@ import (
 )
 
 type Item string
+type itemDelegate struct{}
+type List struct {
+	list list.Model
+}
 
 func (i Item) FilterValue() string { return "" }
-
-type itemDelegate struct{}
 
 func (d itemDelegate) Height() int                             { return 1 }
 func (d itemDelegate) Spacing() int                            { return 0 }
@@ -37,17 +39,13 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	fmt.Fprint(w, fn(str))
 }
 
-type List struct {
-	list list.Model
-}
-
 func NewList(items []Item, title string) List {
 	listItems := make([]list.Item, len(items))
 	for i, item := range items {
 		listItems[i] = item
 	}
 
-	l := list.New(listItems, itemDelegate{}, 20, 14)
+	l := list.New(listItems, itemDelegate{}, 28, 12)
 	l.Title = title
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)

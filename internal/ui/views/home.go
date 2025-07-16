@@ -52,8 +52,6 @@ func (v *HomeView) Update(msg tea.Msg) (View, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		v.list.SetWidth(msg.Width)
 
 	case tea.KeyMsg:
 		switch msg.String() {
