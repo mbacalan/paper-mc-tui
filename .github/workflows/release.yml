@@ -33,8 +33,10 @@ jobs:
       - name: Build binary
         run: |
           mkdir -p dist
+          EXT=""
+          if [ "${{ matrix.goos }}" = "windows" ]; then EXT=".exe"; fi
           cd cmd/cli
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o dist/papermctui-${{ matrix.goos }}-${{ matrix.goarch }} .
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../../dist/papermctui-${{ matrix.goos }}-${{ matrix.goarch }}$EXT .
 
       - name: Upload binary as artifact
         uses: actions/upload-artifact@v4
