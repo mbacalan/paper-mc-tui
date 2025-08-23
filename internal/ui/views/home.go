@@ -3,11 +3,13 @@ package views
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mbacalan/paper-mc-tui/internal/ui/components"
+	"strconv"
 )
 
 type HomeView struct {
 	list   components.List
 	choice string
+	items  []components.Item
 }
 
 type MenuAction string
@@ -40,11 +42,36 @@ func NewHomeView() *HomeView {
 	list := components.NewList(items, "PaperMC Management CLI")
 
 	return &HomeView{
-		list: list,
+		list:  list,
+		items: items,
 	}
 }
 
 func (v *HomeView) Init() tea.Cmd {
+	return nil
+}
+
+func (v *HomeView) handleMenuSelection(choice string) tea.Cmd {
+	switch choice {
+	case string(CheckLatestVersion):
+		return func() tea.Msg {
+			return SwitchViewMsg{ViewID: VersionViewID}
+		}
+	case string(CheckLatestBuild):
+		return func() tea.Msg {
+			return SwitchViewMsg{ViewID: BuildViewID}
+		}
+	case string(CheckInstalledBuild):
+		return func() tea.Msg {
+			return SwitchViewMsg{ViewID: CurrentBuildViewID}
+		}
+	case string(DownloadLatestBuild):
+		return func() tea.Msg {
+			return SwitchViewMsg{ViewID: DownloadBuildID}
+		}
+	case string(Quit):
+		return tea.Quit
+	}
 	return nil
 }
 
@@ -62,26 +89,17 @@ func (v *HomeView) Update(msg tea.Msg) (View, tea.Cmd) {
 			i, ok := v.list.SelectedItem()
 			if ok {
 				v.choice = string(i)
+				return v, v.handleMenuSelection(v.choice)
+			}
 
-				switch v.choice {
-				case string(CheckLatestVersion):
-					return v, func() tea.Msg {
-						return SwitchViewMsg{ViewID: VersionViewID}
+		default:
+			if key := msg.String(); len(key) == 1 && key >= "1" && key <= "9" {
+				if num, err := strconv.Atoi(key); err == nil {
+					index := num - 1 // Convert to 0-based index
+					if index >= 0 && index < len(v.items) {
+						v.choice = string(v.items[index])
+						return v, v.handleMenuSelection(v.choice)
 					}
-				case string(CheckLatestBuild):
-					return v, func() tea.Msg {
-						return SwitchViewMsg{ViewID: BuildViewID}
-					}
-				case string(CheckInstalledBuild):
-					return v, func() tea.Msg {
-						return SwitchViewMsg{ViewID: CurrentBuildViewID}
-					}
-				case string(DownloadLatestBuild):
-					return v, func() tea.Msg {
-						return SwitchViewMsg{ViewID: DownloadBuildID}
-					}
-				case string(Quit):
-					return v, tea.Quit
 				}
 			}
 		}
