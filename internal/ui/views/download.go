@@ -214,10 +214,10 @@ func (v *DownloadView) View() string {
 	switch v.state {
 	case stateBackupPrompt:
 		promptText := style.Render("A paper.jar file already exists. Would you like to back it up? (y/n)\n\n")
-			help := components.NewHelp(
-				key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "yes")),
-				key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "no")),
-			)
+		help := components.NewHelp(
+			key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "yes")),
+			key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "no")),
+		)
 		return promptText + help.View()
 
 	case stateBackupInput:
