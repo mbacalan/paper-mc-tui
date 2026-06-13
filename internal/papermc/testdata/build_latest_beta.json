@@ -1,0 +1,14 @@
+{
+  "id": 12,
+  "time": "2026-06-01T10:00:00Z",
+  "channel": "BETA",
+  "commits": [],
+  "downloads": {
+    "server:default": {
+      "name": "paper-26.2-rc-2-12.jar",
+      "checksums": { "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      "size": 1000,
+      "url": "https://fill-data.papermc.io/v1/objects/aaaa/paper-26.2-rc-2-12.jar"
+    }
+  }
+}

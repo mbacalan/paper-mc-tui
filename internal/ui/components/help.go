@@ -8,31 +8,18 @@ import (
 )
 
 type KeyMap struct {
-	Up      key.Binding
-	Down    key.Binding
-	Retry   key.Binding
-	Accept  key.Binding
-	Decline key.Binding
-	Help    key.Binding
-	Back    key.Binding
-	Quit    key.Binding
-	Custom  []key.Binding
+	Help   key.Binding
+	Back   key.Binding
+	Quit   key.Binding
+	Custom []key.Binding // per-view bindings (e.g. retry, y/n)
 }
 
 func (k KeyMap) ShortHelp() []key.Binding {
-	defaultKeys := []key.Binding{k.Accept, k.Decline, k.Retry, k.Back, k.Quit}
-	return append(defaultKeys, k.Custom...)
+	return append([]key.Binding{k.Back, k.Quit}, k.Custom...)
 }
 
 func (k KeyMap) FullHelp() [][]key.Binding {
-	defaultKeys := [][]key.Binding{
-		{k.Up, k.Down, k.Retry, k.Accept, k.Decline},
-		{k.Back, k.Quit},
-	}
-	if len(k.Custom) > 0 {
-		defaultKeys = append(defaultKeys, k.Custom)
-	}
-	return defaultKeys
+	return [][]key.Binding{append([]key.Binding{k.Back, k.Quit}, k.Custom...)}
 }
 
 var DefaultKeyMap = KeyMap{

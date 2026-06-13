@@ -1,251 +1,275 @@
 package views
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mbacalan/paper-mc-tui/internal/paper"
 	"github.com/mbacalan/paper-mc-tui/internal/ui/components"
-	"github.com/mbacalan/paper-mc-tui/internal/utils"
 )
 
-type backupState int
+// downloadTimeout bounds the jar transfer (separate from the short API timeout).
+const downloadTimeout = 15 * time.Minute
+
+type downloadState int
 
 const (
-	stateNormal backupState = iota
+	stateLoading downloadState = iota
+	stateUpToDate
 	stateBackupPrompt
 	stateBackupInput
+	stateDownloading
+	stateDone
+	stateError
 )
 
-type DownloadView struct {
-	success      bool
-	error        error
-	retryCount   int
-	state        backupState
-	backupInput  textinput.Model
-	backupExists bool
-	logger       *utils.Logger
-	version      string
-	build        string
+// prepareMsg is the result of the initial "what's latest / do we need it" check.
+type prepareMsg struct {
+	info      paper.LatestInfo
+	jarExists bool
+	err       error
 }
 
-func NewDownloadView() *DownloadView {
+type progressMsg float64
+
+type doneMsg struct{ err error }
+
+type DownloadView struct {
+	svc         *paper.Service
+	state       downloadState
+	info        paper.LatestInfo
+	err         error
+	backupInput textinput.Model
+	progress    progress.Model
+
+	// progress plumbing: the download runs in a goroutine that reports on these.
+	progressCh chan float64
+	doneCh     chan error
+}
+
+func NewDownloadView(svc *paper.Service) *DownloadView {
 	ti := textinput.New()
 	ti.Placeholder = "paper.backup.jar"
 	ti.Focus()
 	ti.CharLimit = 150
 	ti.Width = 30
 
-	logger, err := utils.NewLogger()
-	if err != nil {
-		fmt.Printf("Error creating logger: %v\n", err)
-	}
-
 	return &DownloadView{
+		svc:         svc,
+		state:       stateLoading,
 		backupInput: ti,
-		logger:      logger,
+		progress:    progress.New(progress.WithSolidFill(string(components.Accent)), progress.WithWidth(40)),
 	}
-}
-
-func (v *DownloadView) backup(filename string) error {
-	if filename == "" {
-		filename = "paper.backup.jar"
-	}
-
-	if err := os.Rename("paper.jar", filename); err != nil {
-		return fmt.Errorf("failed to backup file: %w", err)
-	}
-
-	v.logger.Log(fmt.Sprintf("Backing up existing paper.jar as %s", filename))
-	return nil
-}
-
-func (v *DownloadView) checkForExisting() bool {
-	_, err := os.Stat("paper.jar")
-	return err == nil
-}
-
-func (v *DownloadView) Download() error {
-	version, err := utils.GetLatestStableVersion()
-	if err != nil {
-		return err
-	}
-
-	build, err := utils.GetLatestBuild(version)
-	if err != nil {
-		return err
-	}
-
-	v.version = version
-	v.build = build
-
-	v.logger.Log(fmt.Sprintf("Latest version is %s", build))
-
-	lastVersion, err := v.logger.GetLastDownloadedVersion()
-	if err == nil && lastVersion == build {
-		return fmt.Errorf("already have the latest version (%s)", build)
-	}
-
-	v.logger.Log(fmt.Sprintf("Attempting to download %s...", build))
-
-	err = utils.DownloadLatestBuild(version)
-	if err != nil {
-		v.logger.Log(fmt.Sprintf("Error downloading %s: %v", build, err))
-		return err
-	}
-
-	if err := v.logger.SaveDownloadedVersion(build); err != nil {
-		return fmt.Errorf("failed to save version info: %w", err)
-	}
-
-	v.logger.Log(fmt.Sprintf("Download of %s successful!", build))
-	return nil
 }
 
 func (v *DownloadView) Init() tea.Cmd {
-	v.error = nil
-	v.success = false
-	v.state = stateNormal
-
-	// First check if we need a new version at all
-	version, err := utils.GetLatestStableVersion()
-	if err != nil {
-		v.error = err
-		return nil
+	v.state = stateLoading
+	v.err = nil
+	svc := v.svc
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), checkTimeout)
+		defer cancel()
+		info, err := svc.CheckLatest(ctx)
+		if err != nil {
+			return prepareMsg{err: err}
+		}
+		return prepareMsg{info: info, jarExists: svc.JarExists()}
 	}
+}
 
-	build, err := utils.GetLatestBuild(version)
-	if err != nil {
-		v.error = err
-		return nil
+// startDownload launches the transfer in a goroutine and begins listening for progress.
+func (v *DownloadView) startDownload() tea.Cmd {
+	v.state = stateDownloading
+	v.progressCh = make(chan float64)
+	v.doneCh = make(chan error, 1)
+
+	svc := v.svc
+	progressCh := v.progressCh
+	doneCh := v.doneCh
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), downloadTimeout)
+		defer cancel()
+		err := svc.Install(ctx, func(done, total int64) {
+			if total <= 0 {
+				return
+			}
+			select {
+			case progressCh <- float64(done) / float64(total):
+			default: // UI busy; drop this tick
+			}
+		})
+		doneCh <- err
+	}()
+
+	return tea.Batch(v.progress.SetPercent(0), v.waitForActivity())
+}
+
+// waitForActivity blocks (off the UI thread) for the next progress tick or completion.
+func (v *DownloadView) waitForActivity() tea.Cmd {
+	progressCh := v.progressCh
+	doneCh := v.doneCh
+	return func() tea.Msg {
+		select {
+		case p := <-progressCh:
+			return progressMsg(p)
+		case err := <-doneCh:
+			return doneMsg{err: err}
+		}
 	}
-
-	lastVersion, err := v.logger.GetLastDownloadedVersion()
-	if err == nil && lastVersion == build {
-		v.error = fmt.Errorf("already have the latest version (%s)", build)
-		return nil
-	}
-
-	// Then check if we need to backup
-	v.backupExists = v.checkForExisting()
-	if v.backupExists {
-		v.state = stateBackupPrompt
-		v.logger.Log("paper.jar already exists, prompting for backup...")
-		return nil
-	}
-
-	// Finally proceed with download
-	err = v.Download()
-	if err != nil {
-		v.error = err
-		return nil
-	}
-
-	v.success = true
-	return nil
 }
 
 func (v *DownloadView) Update(msg tea.Msg) (View, tea.Cmd) {
-	var cmd tea.Cmd
-
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case prepareMsg:
+		if msg.err != nil {
+			v.state = stateError
+			v.err = msg.err
+			return v, nil
+		}
+		v.info = msg.info
 		switch {
-		case v.state == stateBackupInput:
-			switch msg.String() {
-			case "enter":
-				filename := strings.TrimSpace(v.backupInput.Value())
-				if err := v.backup(filename); err != nil {
-					v.error = fmt.Errorf("failed to create backup: %w", err)
-					v.state = stateNormal
-					return v, nil
-				}
-				v.state = stateNormal
-				return v, v.Init()
-			case "esc":
-				v.state = stateBackupPrompt
-				return v, nil
-			default:
-				v.backupInput, cmd = v.backupInput.Update(msg)
-				return v, cmd
-			}
-
-		case v.state == stateBackupPrompt:
-			switch msg.String() {
-			case "y":
-				v.state = stateBackupInput
-				v.backupInput.Focus()
-				return v, nil
-			case "n", "esc":
-				v.logger.Log("Operation cancelled by user")
-				return v, func() tea.Msg {
-					return SwitchViewMsg{ViewID: HomeViewID}
-				}
-			case "q", "ctrl+c":
-				return v, tea.Quit
-			}
-
+		case msg.info.UpToDate:
+			v.state = stateUpToDate
+			return v, nil
+		case msg.jarExists:
+			v.state = stateBackupPrompt
+			return v, nil
 		default:
-			switch msg.String() {
-			case "q", "ctrl+c":
-				return v, tea.Quit
-			case "r":
-				v.retryCount++
-				return v, v.Init()
-			case "esc":
-				return v, func() tea.Msg {
-					return SwitchViewMsg{ViewID: HomeViewID}
-				}
+			return v, v.startDownload()
+		}
+
+	case progressMsg:
+		cmd := v.progress.SetPercent(float64(msg))
+		return v, tea.Batch(cmd, v.waitForActivity())
+
+	case doneMsg:
+		if msg.err != nil {
+			v.state = stateError
+			v.err = msg.err
+			return v, nil
+		}
+		v.state = stateDone
+		return v, v.progress.SetPercent(1.0)
+
+	case progress.FrameMsg:
+		m, cmd := v.progress.Update(msg)
+		v.progress = m.(progress.Model)
+		return v, cmd
+
+	case tea.KeyMsg:
+		return v.handleKey(msg)
+	}
+
+	return v, nil
+}
+
+func (v *DownloadView) handleKey(msg tea.KeyMsg) (View, tea.Cmd) {
+	// Quit works from any state.
+	if msg.String() == "ctrl+c" {
+		return v, tea.Quit
+	}
+
+	switch v.state {
+	case stateBackupInput:
+		switch msg.String() {
+		case "enter":
+			filename := strings.TrimSpace(v.backupInput.Value())
+			if _, err := v.svc.Backup(filename); err != nil {
+				v.state = stateError
+				v.err = fmt.Errorf("failed to create backup: %w", err)
+				return v, nil
+			}
+			return v, v.startDownload()
+		case "esc":
+			v.state = stateBackupPrompt
+			return v, nil
+		default:
+			var cmd tea.Cmd
+			v.backupInput, cmd = v.backupInput.Update(msg)
+			return v, cmd
+		}
+
+	case stateBackupPrompt:
+		switch msg.String() {
+		case "y":
+			v.state = stateBackupInput
+			v.backupInput.Focus()
+			return v, nil
+		case "n", "esc":
+			return v, backToHome
+		}
+
+	case stateError:
+		switch msg.String() {
+		case "q":
+			return v, tea.Quit
+		case "r":
+			return v, v.Init()
+		case "esc":
+			return v, backToHome
+		}
+
+	default: // stateLoading, stateUpToDate, stateDownloading, stateDone
+		switch msg.String() {
+		case "q":
+			return v, tea.Quit
+		case "esc":
+			if v.state != stateDownloading {
+				return v, backToHome
 			}
 		}
 	}
 
-	return v, cmd
+	return v, nil
 }
 
 func (v *DownloadView) View() string {
-	style := lipgloss.NewStyle().Margin(1, 2)
-	help := components.NewHelp()
+	style := components.Body
 
 	switch v.state {
+	case stateLoading:
+		return style.Render("Checking for the latest build…") + components.NewHelp().View()
+
+	case stateUpToDate:
+		text := fmt.Sprintf("You already have the latest build %d (%s). Nothing to do.",
+			v.info.Build, v.info.JarName)
+		return style.Render(text) + components.NewHelp().View()
+
 	case stateBackupPrompt:
-		promptText := style.Render("A paper.jar file already exists. Would you like to back it up? (y/n)\n\n")
 		help := components.NewHelp(
 			key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "yes")),
 			key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "no")),
 		)
-		return promptText + help.View()
+		return style.Render("A paper.jar already exists. Back it up first? (y/n)") + help.View()
 
 	case stateBackupInput:
-		inputText := style.Render("Enter backup filename (default: paper.backup.jar):\n\n")
-		return inputText + v.backupInput.View() + "\n\n(press Enter to confirm, Esc to go back)"
+		text := style.Render("Enter backup filename (default: paper.backup.jar):")
+		return text + "\n" + v.backupInput.View() + "\n\n(press Enter to confirm, Esc to go back)"
+
+	case stateDownloading:
+		header := style.Render(fmt.Sprintf("Downloading %s (%s)…", v.info.JarName, humanMB(v.info.Download.Size)))
+		return header + "\n" + lipgloss.NewStyle().Margin(0, 2).Render(v.progress.View()) + "\n"
+
+	case stateDone:
+		return style.Render(fmt.Sprintf("Downloaded and verified %s!", v.info.JarName)) + components.NewHelp().View()
+
+	case stateError:
+		help := components.NewHelp(key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "retry")))
+		return style.Render(fmt.Sprintf("Download failed:\n%v", v.err)) + help.View()
 
 	default:
-		if v.success {
-			buildText := style.Render(fmt.Sprint("Downloaded latest build!\n\n"))
-			return buildText + help.View()
-		}
-
-		if v.error != nil {
-			retries := fmt.Sprintf("Retries: %d\n\n", v.retryCount)
-			text := fmt.Sprint(v.error.Error() + "\n\n")
-
-			if v.retryCount > 0 {
-				text = fmt.Sprint(text + "Retrying...\n\n" + retries)
-			}
-
-			errorText := style.Render(text)
-			help := components.NewHelp(
-				key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "retry")),
-			)
-
-			return errorText + help.View()
-		}
-
-		return "Unable to download latest build!\n" + help.View()
+		return style.Render("Unexpected state.") + components.NewHelp().View()
 	}
+}
+
+// humanMB renders a byte count as megabytes.
+func humanMB(b int64) string {
+	return fmt.Sprintf("%.1f MB", float64(b)/(1024*1024))
 }

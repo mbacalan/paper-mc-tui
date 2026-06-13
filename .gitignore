@@ -1,4 +1,16 @@
+# compiled binary (canonical name)
+/paper-mc-tui
+
+# server artifacts — never commit jars
 paper.jar
-paper.backup.jar
-paper-mc-manager
+*.backup.jar
+
+# tool state and logs (created at runtime alongside the jar)
+state.json
+paper-mc.log
 logs/
+
+# release + coverage output
+/dist/
+coverage.out
+coverage.html

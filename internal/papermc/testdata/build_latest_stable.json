@@ -1,0 +1,16 @@
+{
+  "id": 70,
+  "time": "2026-05-20T10:00:00Z",
+  "channel": "STABLE",
+  "commits": [
+    { "sha": "abc123", "time": "2026-05-20T09:00:00Z", "message": "Release 26.1.2" }
+  ],
+  "downloads": {
+    "server:default": {
+      "name": "paper-26.1.2-70.jar",
+      "checksums": { "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+      "size": 2000,
+      "url": "https://fill-data.papermc.io/v1/objects/bbbb/paper-26.1.2-70.jar"
+    }
+  }
+}

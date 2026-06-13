@@ -2,6 +2,7 @@ package views
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mbacalan/paper-mc-tui/internal/paper"
 )
 
 // View is the interface that all views must implement
@@ -16,16 +17,16 @@ type ViewID int
 
 // Manager handles view switching and rendering
 type Manager struct {
+	svc         *paper.Service
 	currentView View
 }
 
-func NewManager() *Manager {
-	return &Manager{}
+func NewManager(svc *paper.Service) *Manager {
+	return &Manager{svc: svc}
 }
 
 func (m *Manager) Init() tea.Cmd {
-	homeView := NewHomeView()
-	m.currentView = homeView
+	m.currentView = NewHomeView()
 	return m.currentView.Init()
 }
 
@@ -57,13 +58,13 @@ func (m *Manager) switchView(id ViewID) (tea.Model, tea.Cmd) {
 	case HomeViewID:
 		view = NewHomeView()
 	case VersionViewID:
-		view = NewVersionView()
+		view = NewVersionView(m.svc)
 	case BuildViewID:
-		view = NewBuildView()
+		view = NewBuildView(m.svc)
 	case CurrentBuildViewID:
-		view = NewCurrentBuildView()
+		view = NewCurrentBuildView(m.svc)
 	case DownloadBuildID:
-		view = NewDownloadView()
+		view = NewDownloadView(m.svc)
 	default:
 		view = NewHomeView()
 	}

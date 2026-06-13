@@ -32,7 +32,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	fn := lipgloss.NewStyle().PaddingLeft(4).Render
 	if index == m.Index() {
 		fn = func(s ...string) string {
-			return lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170")).Render("> " + strings.Join(s, " "))
+			return lipgloss.NewStyle().PaddingLeft(2).Foreground(Accent).Render("> " + strings.Join(s, " "))
 		}
 	}
 
